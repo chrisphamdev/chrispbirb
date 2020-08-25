@@ -1,3 +1,4 @@
+from env_loader import load_env
 import discord
 from discord.ext.commands import Bot
 from discord.ext import commands
@@ -5,7 +6,8 @@ import asyncio
 import time
 from discord import client
 
-token = 'NzQ3NjUxNzkxNTkxNTcxNDg3.X0R-_Q.V98Qk9lisHYSD3pB1tQxIkbIffU'
+env = load_env("/")
+token = env.get("TOKEN")
 client = commands.Bot(command_prefix='>')
 
 
