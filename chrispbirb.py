@@ -39,6 +39,7 @@ async def on_voice_state_update(member, before, after):
             for i in range(len(member.guild.categories)):
                 if after.channel.category_id == member.guild.categories[i].id:
                     category_index = i
+                    break
 
             # Create the new session on the same category as the initialize voice channel
             new_session = await member.guild.categories[category_index].create_voice_channel(channel_name)
@@ -61,13 +62,35 @@ async def on_voice_state_update(member, before, after):
             if before.channel.name in custom_voice_channels and user_count > 0:
                 custom_voice_channels[before.channel.name] -= 1
             if before.channel.name in custom_voice_channels and user_count == 1:
-                time.sleep(1)
+                time.sleep(0.7) # so it lingers a bit before going into the unknown :(
                 await before.channel.delete()
 
 
 @client.command()
+async def session(ctx, name):
+    vc_spawn_index = -1
+    for i in range(len(ctx.guild.categories)):
+        for vc in ctx.guild.categories[i].voice_channels:
+            if vc.name == 'Create New Session':
+                vc_spawn_index = i
+                break
+    print(vc_spawn_index)
+
+@client.command()
 async def hello(ctx):
     await ctx.send('Greetings {0.mention}'.format(ctx.author))
+
+
+@client.command()
+async def info(ctx):
+    await ctx.send('`This bot was developed by the UoA staff team for the UoA Esports server.\nAny feedback will be kindly appreciated to Chris P Bacon#0047.`')
+
+
+@client.command()
+async def beg(ctx):
+    await ctx.send('Any donation would be kindly appreciated in League\'s RP to the account Chris P Bacon#OCE :   ^)')
+
+
 
 
 client.run(token)
