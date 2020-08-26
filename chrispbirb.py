@@ -47,9 +47,15 @@ async def on_voice_state_update(member, before, after):
             # Create the new session on the same category as the initialize voice channel
             new_session = await member.guild.categories[category_index].create_voice_channel(channel_name)
 
+            
+            # Make sure that the channel is above the AFK channel
+            new_session_index = new_session.position
+            await new_session.edit(position=new_session_index-1)
+
             # Add the voice channel id to the tracker
             custom_voice_channels[new_session.id] = -1 # -1 as the user join counts twice first time
             await member.move_to(new_session)
+
     
     
     #update the counter everytime someone enters a custom session
