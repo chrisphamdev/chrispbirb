@@ -1,3 +1,5 @@
+''' This bot was developed by Chris Pham, along with the UoA Esports staff team
+'''
 from env_loader import load_env
 import discord
 from discord.ext.commands import Bot
@@ -5,6 +7,9 @@ from discord.ext import commands
 import asyncio
 import time
 from discord import client
+import customvc
+from customvc import CustomVoiceChannel
+from customvc import allVoiceChannel
 
 env = load_env("/")
 token = env.get("TOKEN")
@@ -12,14 +17,14 @@ client = commands.Bot(command_prefix='>')
 
 
 # keep track of the custom voice sessions
-custom_voice_channels = {}
+all_custom_vc = allVoiceChannel()
 
 
 # Custom help message - to be done
 client.remove_command('help')
 @client.command()
 async def help(ctx):
-    await ctx.send("`Hop in the \"Create New Session\" voice channel to generate a voice chat for your use`")
+    await ctx.send("`Hop in the \"Create New Session\" voice channel to generate a voice chat for your use, and use the command '>session name' to modify your session name if you wish to`")
 
 
 @client.event
@@ -47,64 +52,38 @@ async def on_voice_state_update(member, before, after):
             # Create the new session on the same category as the initialize voice channel
             new_session = await member.guild.categories[category_index].create_voice_channel(channel_name)
 
-            
-            # Make sure that the channel is above the AFK channel
-            new_session_index = new_session.position
-            await new_session.edit(position=new_session_index-1)
+            """# Make sure that the channel is above the bottom channel (persumably the AFK channel)
+            if (member.guild.id == 154456736319668224):
+                for i in range(len(member.guild.categories[category_index].voice_channels)):
+                    if member.guild.categories[category_index].voice_channels[i].id == 154457743439167488: # ID of AFK channel
+                        afk_channel_index = i
+                        break
+                await member.guild.categories[category_index].voice_channels[afk_channel_index].edit(position=afk_channel_index+1)
+                await new_session(position=afk_channel_index-1)
+                print(member.guild.categories[category_index].voice_channels)"""
 
             # Add the voice channel id to the tracker
-            custom_voice_channels[new_session.id] = -1 # -1 as the user join counts twice first time
+            new_room = CustomVoiceChannel(new_session, member.id)
+            all_custom_vc.sessionCreated(new_room)
             await member.move_to(new_session)
 
     
     
     #update the counter everytime someone enters a custom session
     if after.channel is not None:
-        if after.channel.id in custom_voice_channels:
-            custom_voice_channels[after.channel.id] += 1
+        if all_custom_vc.exist(after.channel):
+            vc = all_custom_vc.get_vc(after.channel)
+            vc.user_join()
 
 
     # Remove the session as the all user exit - TO FIX THE COUNTER DOESN'T UPDATE THE FIRST TIME AN USER EXITS (doesn't affect functionality)
     if before.channel is not None:
-        if before.channel.id in custom_voice_channels:
-            user_count = custom_voice_channels[before.channel.id]
-            if before.channel.id in custom_voice_channels and user_count > 0:
-                custom_voice_channels[before.channel.id] -= 1
-            if before.channel.id in custom_voice_channels and user_count == 1:
-                time.sleep(0.6) # so it lingers a bit before going into the unknown :(
+        if all_custom_vc.exist(before.channel):
+            vc = all_custom_vc.get_vc(before.channel)
+            vc.user_left()
+            if vc.is_empty():
                 await before.channel.delete()
-
-
-@client.command()
-async def session(ctx, *, name): #still in development
-    channel_name = name
-    vc_spawn_index = -1
-    if channel_name == "Create New Session":
-        # warning message and break out of function if given invalid name
-        await ctx.send('`Invalid channel name. Please retry.`')
-        return
-
-    # Find the Voice Channels category
-    for i in range(len(ctx.guild.categories)):
-        for vc in ctx.guild.categories[i].voice_channels:
-            if vc.name == 'Create New Session':
-                vc_spawn_index = i
-                break
-    
-    new_session = await ctx.guild.categories[vc_spawn_index].create_voice_channel(channel_name)
-    # Add the voice channel instance to the tracker
-    custom_voice_channels[new_session.id] = -1 # -1 as the user join counts twice first time
-
-    # This fragment of code delete the channel if it is inactive after creation (1 min timeout)
-    time.wait(60)
-    if custom_voice_channels[new_session.name] <= 0:
-        await ctx.send('`Session timeout. The voice channel were inactive for too long.`')
-        all_vc = ctx.guild.categories[vc_spawn_index].voice_channels
-        for vc in all_vc:
-            if vc.name == channel_name:
-                to_be_deleted = vc
-                break
-        await to_be_deleted.delete()
+                all_custom_vc.session_delete(vc)
 
 
 @client.command()
@@ -122,11 +101,30 @@ async def beg(ctx):
     await ctx.send('Any donation would be kindly appreciated in League\'s RP to the account Chris P Bacon#OCE :   ^)')
 
 
+# can only change name twice for some reason
+@client.command()
+async def session(ctx, *, name):
+    new_vc_name = name
+
+    #check if the user is in a voice channel
+    if ctx.author.voice == None:
+        await ctx.send("You have to be in a channel!")
+        return
+
+    # check if the user is the owner of the channel    
+    current_vc = ctx.author.voice.channel
+    if all_custom_vc.exist(current_vc):
+        vc_object = all_custom_vc.get_vc(current_vc)
+    if not vc_object.is_owner(ctx.author):
+        await ctx.send("You're not the owner of this voice session.")
+        return
+    
+    await current_vc.edit(name=new_vc_name)
+
+    
 @client.command()
 async def ping(ctx):
     await ctx.send(f'Pong! This message took {round(client.latency * 1000)}ms.')
-
-
 
 
 client.run(token)
