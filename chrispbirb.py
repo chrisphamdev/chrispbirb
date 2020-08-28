@@ -10,6 +10,16 @@ from discord import client
 import customvc
 from customvc import CustomVoiceChannel
 from customvc import allVoiceChannel
+import logging
+
+
+#handles the logging
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
+
 
 env = load_env("/")
 token = env.get("TOKEN")
@@ -101,12 +111,15 @@ async def beg(ctx):
     await ctx.send('Any donation would be kindly appreciated in League\'s RP to the account Chris P Bacon#OCE :   ^)')
 
 
-# can only change name twice for some reason
+@cooldown(rate=2, per=600.0,  type=BucketType.user)
 @client.command()
-async def session(ctx, *, name):
-    new_vc_name = name
+async def session(ctx, *, custom_name):
+    if custom_name == "Create New Session":
+        await ctx.send("Invalid name.")
+        return
+    new_vc_name = custom_name
 
-    #check if the user is in a voice channel
+    # check if the user is in a voice channel
     if ctx.author.voice == None:
         await ctx.send("You have to be in a channel!")
         return
@@ -115,16 +128,15 @@ async def session(ctx, *, name):
     current_vc = ctx.author.voice.channel
     if all_custom_vc.exist(current_vc):
         vc_object = all_custom_vc.get_vc(current_vc)
-    if not vc_object.is_owner(ctx.author):
-        await ctx.send("You're not the owner of this voice session.")
-        return
-    
-    await current_vc.edit(name=new_vc_name)
+        if not vc_object.is_owner(ctx.author):
+            await ctx.send("You're not the owner of this voice session.")
+        else:
+            await current_vc.edit(name=new_vc_name)
 
     
 @client.command()
 async def ping(ctx):
-    await ctx.send(f'Pong! This message took {round(client.latency * 1000)}ms.')
+    await ctx.send(f'Pong! This message took {round(client.latency * 1000)}ms to respond.')
 
 
 client.run(token)
