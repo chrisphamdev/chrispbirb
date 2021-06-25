@@ -3,7 +3,7 @@
 from env_loader import load_env
 import discord
 from discord.ext.commands import Bot
-from discord.ext import commands
+from discord.ext import commands, tasks
 import asyncio
 import time
 from discord import client
@@ -11,6 +11,8 @@ import customvc
 from customvc import CustomVoiceChannel
 from customvc import allVoiceChannel
 import logging
+import random
+from discord.utils import get
 
 
 #handles the logging
@@ -111,7 +113,7 @@ async def beg(ctx):
     await ctx.send('Any donation would be kindly appreciated in League\'s RP to the account Chris P Bacon#OCE :   ^)')
 
 
-@cooldown(rate=2, per=600.0,  type=BucketType.user)
+#@cooldown(rate=2, per=600.0,  type=BucketType.user)
 @client.command()
 async def session(ctx, *, custom_name):
     if custom_name == "Create New Session":
@@ -138,5 +140,83 @@ async def session(ctx, *, custom_name):
 async def ping(ctx):
     await ctx.send(f'Pong! This message took {round(client.latency * 1000)}ms to respond.')
 
+@client.command()
+async def flip(ctx):
+    coin = random.randrange(1,3)
+    if coin == 1:
+        await ctx.send('Heads!')
+    if coin == 2:
+        await ctx.send('Tails!')
 
+
+@client.command()
+async def mottronghai(ctx, option1, option2):
+    option = random.randrange(1,3)
+    if option == 1:
+        await ctx.send(option1)
+    if option == 2:
+        await ctx.send(option2)
+
+@client.command()
+async def amonguslfg_setup(ctx):
+    text = '\nReact to the emojis under this message to get the Among Us LFG role. \n \n The [1] and [2] emojis give you the role for 1 and 2 hour(s) respectively, while the \'AmongUs\' emoji gives you the role permanently. Simply remove your reaction to this emoji and the role will be removed just like in the #get-roles channel. \n \nBe mindful that this role can be pinged by anyone!'
+    embedVar=discord.Embed(title="Among Us LFG Role", description=text, color=0x14cad7)
+    embedVar.set_image(url='https://images.dexerto.com/uploads/2020/08/25181313/among-us-taking-over-twitch-final.jpg')
+    msg = await ctx.send(embed=embedVar)
+
+    for emoji in ctx.author.guild.emojis:
+        if emoji.name == 'AmongUs' or emoji.name == 'amongus':
+            amongus_emoji = emoji
+            break
+    
+    await msg.add_reaction('1\N{variation selector-16}\N{combining enclosing keycap}')
+    await msg.add_reaction('2\N{variation selector-16}\N{combining enclosing keycap}')
+    await msg.add_reaction(amongus_emoji)
+
+@client.event
+async def on_raw_reaction_add(data):
+    #replace message id with id of get role message
+    if data.message_id == 760760458360651836:
+        for elm in data.member.guild.channels:
+            if elm.name == 'among-us' or elm.name == 'nerd-chat':
+                host_channel = elm
+                break
+        msg = await host_channel.fetch_message(data.message_id)
+
+        #replace this with id of 'Among Us LFG' role
+        role_id = 760392204710969354
+        if data.emoji.name == '1️⃣':
+            role = get(data.member.guild.roles, id=role_id)
+            await data.member.add_roles(role)
+            await msg.remove_reaction(emoji=data.emoji, member=data.member)
+            await asyncio.sleep(3600)
+            await data.member.remove_roles(role)
+        if data.emoji.name == '2️⃣':
+            role = get(data.member.guild.roles, id=role_id)
+            await data.member.add_roles(role)
+            await msg.remove_reaction(emoji=data.emoji, member=data.member)
+            await asyncio.sleep(7200)
+            await data.member.remove_roles(role)
+        if data.emoji.name == 'amongus' or data.emoji.name == 'AmongUs':
+            role = get(data.member.guild.roles, id=role_id)
+            await data.member.add_roles(role)
+
+@client.event
+async def on_raw_reaction_remove(data):
+    #replace message id with id of get role message
+    if data.message_id == 760760458360651836:
+        #replace this with the id of 'Among Us LFG' role
+        role_id = 760392204710969354
+        #obtain the member object of the reacted member
+        member = client.get_user(data.user_id)
+        server = client.get_guild(data.guild_id)
+        for mem in server.members:
+            if mem.id == member.id:
+                reacted_member = mem
+                break
+        
+        if data.emoji.name == 'amongus' or data.emoji.name == 'AmongUs':
+            role = get(reacted_member.guild.roles, id=role_id)
+            await reacted_member.remove_roles(role)
+    
 client.run(token)
