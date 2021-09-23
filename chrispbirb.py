@@ -1,4 +1,4 @@
-''' This bot was developed by Chris Pham, along with the UoA Esports staff team
+''' This bot was developed by Chris Pham for the UoA Esports server. Any use of code please credit me @ github.com/chrisphamdev
 '''
 from env_loader import load_env
 import discord
@@ -63,16 +63,6 @@ async def on_voice_state_update(member, before, after):
 
             # Create the new session on the same category as the initialize voice channel
             new_session = await member.guild.categories[category_index].create_voice_channel(channel_name)
-
-            """# Make sure that the channel is above the bottom channel (persumably the AFK channel)
-            if (member.guild.id == 154456736319668224):
-                for i in range(len(member.guild.categories[category_index].voice_channels)):
-                    if member.guild.categories[category_index].voice_channels[i].id == 154457743439167488: # ID of AFK channel
-                        afk_channel_index = i
-                        break
-                await member.guild.categories[category_index].voice_channels[afk_channel_index].edit(position=afk_channel_index+1)
-                await new_session(position=afk_channel_index-1)
-                print(member.guild.categories[category_index].voice_channels)"""
 
             # Add the voice channel id to the tracker
             new_room = CustomVoiceChannel(new_session, member.id)
@@ -140,22 +130,7 @@ async def session(ctx, *, custom_name):
 async def ping(ctx):
     await ctx.send(f'Pong! This message took {round(client.latency * 1000)}ms to respond.')
 
-@client.command()
-async def flip(ctx):
-    coin = random.randrange(1,3)
-    if coin == 1:
-        await ctx.send('Heads!')
-    if coin == 2:
-        await ctx.send('Tails!')
 
-
-@client.command()
-async def mottronghai(ctx, option1, option2):
-    option = random.randrange(1,3)
-    if option == 1:
-        await ctx.send(option1)
-    if option == 2:
-        await ctx.send(option2)
 
 @client.command()
 async def amonguslfg_setup(ctx):
@@ -218,5 +193,17 @@ async def on_raw_reaction_remove(data):
         if data.emoji.name == 'amongus' or data.emoji.name == 'AmongUs':
             role = get(reacted_member.guild.roles, id=role_id)
             await reacted_member.remove_roles(role)
-    
+
+
+@client.command()
+async def coinflip(ctx):
+    coin = random.randint(0, 1)
+    if coin == 0:
+        outcome = 'https://gfycat.com/skeletalecstaticdiamondbackrattlesnake'
+    else:
+        outcome = 'https://gfycat.com/selfreliantimportantbackswimmer' 
+
+    await ctx.send(outcome)
+
+
 client.run(token)
